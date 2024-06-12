@@ -69,6 +69,7 @@ a {
 }
 .cb-sch-filt-opt {
   background-color: #616161 !important;
+  color: white !important;
 }
 .sr-nav-item {
   background-color: #616161 !important;
@@ -154,6 +155,7 @@ tbody {
 }
 .cb-lv-grn-strip {
   background-color: #656f68 !important;
+  color: white !important;
 }
 .cb-lv-scrs-well {
   background-color: #acacac !important;
@@ -163,6 +165,7 @@ tbody {
 }
 .cb-sch-tms-widgt {
   background-color: #505050 !important;
+  color: rgb(157, 157, 157) !important;
 }
 .cb-sch-tms-widgt:hover {
   background-color: #464646 !important;
@@ -173,8 +176,11 @@ tbody {
 .cb-sign-up-tnc-text {
   color: #ffffff !important;
 }
-.ng-binding {
-  color: #ffffff !important;
+.cb-mtchs-dy {
+  color: white !important;
+}
+.cb-mtchs-dy-vnu a {
+  color: white !important;
 }
 .cb-subnav-item:hover {
   background-color: #4e4e4e !important;
@@ -186,11 +192,14 @@ tbody {
   background-color: #616161 !important;
 }
 .cb-bg-gray {
-  background-color: #aeaeae !important;
+  background-color: #a8a8a8 !important;
   color: black !important;
 }
 .cb-hig-nv-br {
   background-color: #616161 !important;
+}
+.cb-hig-fltr {
+  color: #ffffff !important;
 }
 .cb-hig-fltr.active {
   background-color: #6f6f6f !important;
@@ -273,4 +282,62 @@ tbody {
 }
 .cb-srs-pnts {
   color: white !important;
+}
+.cb-mtch-frmt-bg-t20 {
+  background-color: #878787 !important;
+  color: white !important;
+}
+.cb-bg-player-in {
+  background-color: #545e57 !important;
+}
+.cb-bg-player-out {
+  background-color: #574e4f !important;
+}
+.cb-caret-down {
+  color: white !important;
+}
+.cb-caret-up {
+  color: white !important;
+}
+.txt-hvr-underline {
+  color: white !important;
+}
+.text-white {
+  color: white !important;
+}
+.poll-opt {
+  color: white;
+}
+.cb-lv-scr-mtch-hdr {
+  color: white !important;
+}
+.cb-lv-grn-strip a {
+  color: white !important;
+}
+.cb-view-all-ga {
+  color: white !important;
+}
+.cb-vid-more {
+  color: #3952d0 !important;
+}
+.cb-srs-pnts-td a {
+  color: white !important;
+}
+.cb-link-undrln {
+  color: white !important;
+}
+.cb-caret-right {
+  color: white !important;
+}
+.cb-embed-video {
+  background-color: #616161 !important;
+  color: white !important;
+}
+.cb-video-modal-title {
+  background-color: #616161 !important;
+  color: white !important;
+}
+.cb-video-close-btn {
+  color: white !important;
+  background-color: #616161 !important;
 }
