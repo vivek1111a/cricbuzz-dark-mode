@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Cricbuzz Dark Mode",
+  "version": "1.0",
+  "description": "Enables dark mode on Cricbuzz website",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["*://www.cricbuzz.com/*"],
+      "css": ["darkmode.css"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  }
+}
