@@ -3,11 +3,13 @@
   "name": "Cricbuzz Dark Mode",
   "version": "1.0",
   "description": "Enables dark mode on Cricbuzz website",
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["*://www.cricbuzz.com/*"],
-      "css": ["darkmode.css"],
       "js": ["content.js"]
     }
   ],

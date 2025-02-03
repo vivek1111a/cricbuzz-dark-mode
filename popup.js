@@ -1,27 +1,47 @@
-document.getElementById("toggleDarkMode").addEventListener("click", () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.scripting.executeScript({
-      target: { tabId: tabs[0].id },
-      function: toggleDarkMode,
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleButton = document.getElementById('toggleDarkMode');
+  console.log("Popup loaded, initializing toggle button...");
+
+  // Retrieve dark mode state from local storage
+  chrome.storage.local.get(['darkModeEnabled'], (result) => {
+    console.log("Current dark mode state:", result.darkModeEnabled);
+    toggleButton.textContent = result.darkModeEnabled ? 'Disable Dark Mode' : 'Enable Dark Mode';
+  });
+
+  toggleButton.addEventListener('click', () => {
+    console.log("Toggle button clicked");
+    chrome.storage.local.get(['darkModeEnabled'], (result) => {
+      const darkModeEnabled = !result.darkModeEnabled;
+      console.log("New dark mode state:", darkModeEnabled);
+      toggleButton.textContent = darkModeEnabled ? 'Disable Dark Mode' : 'Enable Dark Mode';
+      chrome.storage.local.set({ darkModeEnabled }, () => {
+        console.log("Dark mode state saved:", darkModeEnabled);
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs.length === 0) {
+            console.error("No active tab found.");
+            return;
+          }
+
+          const tabId = tabs[0].id;
+          console.log("Sending message to content.js for tab ID:", tabId);
+
+          chrome.scripting.executeScript(
+            {
+              target: { tabId: tabId },
+              files: ['content.js']
+            },
+            () => {
+              chrome.tabs.sendMessage(tabId, { darkModeEnabled }, (response) => {
+                if (chrome.runtime.lastError) {
+                  console.error("Error sending message:", chrome.runtime.lastError.message);
+                } else {
+                  console.log("Message sent, response:", response);
+                }
+              });
+            }
+          );
+        });
+      });
     });
   });
 });
-
-function toggleDarkMode() {
-  if (document.body.classList.contains("dark-mode")) {
-    document.body.classList.remove("dark-mode");
-    const darkStyles = document.querySelector("#darkModeStyles");
-    if (darkStyles) darkStyles.remove();
-  } else {
-    document.body.classList.add("dark-mode");
-    const style = document.createElement("style");
-    style.id = "darkModeStyles";
-    style.textContent = `
-        body { background-color: #121212 !important; color: #e0e0e0 !important; }
-        header, nav, footer, .cb-nav-bar { background-color: #1e1e1e !important; }
-        a { color: #bb86fc !important; }
-        /* Add more selectors here */
-      `;
-    document.head.append(style);
-  }
-}
