@@ -17,7 +17,6 @@ const App: React.FC<{}> = () => {
   useEffect(() => {
     chrome.storage.local.get(["darkModeEnabled"], (result) => {
       const darkModeEnabled = result.darkModeEnabled ?? false;
-      console.log("Current dark mode state:", darkModeEnabled);
       setState({
         darkModeEnabled,
         isLoading: false,
@@ -27,7 +26,6 @@ const App: React.FC<{}> = () => {
 
   const handleToggleDarkMode = () => {
     const newDarkModeState = !state.darkModeEnabled;
-    console.log("Toggling dark mode to:", newDarkModeState);
 
     // Update local state immediately for better UX
     setState((prev) => ({
@@ -37,12 +35,9 @@ const App: React.FC<{}> = () => {
 
     // Save to storage
     chrome.storage.local.set({ darkModeEnabled: newDarkModeState }, () => {
-      console.log("Dark mode state saved:", newDarkModeState);
-
       // Get active tab and apply dark mode
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs.length === 0 || !tabs[0].id) {
-          console.error("No active tab found.");
           return;
         }
 
@@ -58,24 +53,11 @@ const App: React.FC<{}> = () => {
             },
             () => {
               // Send message to content script
-              chrome.tabs.sendMessage(
-                tabId,
-                { darkModeEnabled: newDarkModeState },
-                (response) => {
-                  if (chrome.runtime.lastError) {
-                    console.error(
-                      "Error sending message:",
-                      chrome.runtime.lastError.message
-                    );
-                  } else {
-                    console.log("Message sent, response:", response);
-                  }
-                }
-              );
+              chrome.tabs.sendMessage(tabId, {
+                darkModeEnabled: newDarkModeState,
+              });
             }
           );
-        } else {
-          console.log("Not a Cricbuzz page, skipping dark mode toggle");
         }
       });
     });

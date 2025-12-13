@@ -1,30 +1,38 @@
-console.log("content.js is running");
-
 let darkModeCSSContent: string | null = null;
+let cssLoadPromise: Promise<string> | null = null;
 
-// Function to load dark mode CSS content
+// Function to load dark mode CSS content (with caching and promise reuse)
 async function loadDarkModeCSS(): Promise<string> {
   if (darkModeCSSContent) {
     return darkModeCSSContent;
   }
 
-  try {
-    const cssUrl = chrome.runtime.getURL("darkmode.css");
-    const response = await fetch(cssUrl);
-    darkModeCSSContent = await response.text();
-    console.log("Dark mode CSS loaded from file.");
-    return darkModeCSSContent;
-  } catch (error) {
-    console.error("Error loading darkmode.css:", error);
-    // Fallback: return empty string or basic styles
-    return "";
+  // If already loading, return the existing promise
+  if (cssLoadPromise) {
+    return cssLoadPromise;
   }
+
+  cssLoadPromise = (async () => {
+    try {
+      const cssUrl = chrome.runtime.getURL("darkmode.css");
+      const response = await fetch(cssUrl);
+      const content = await response.text();
+      darkModeCSSContent = content;
+      return content;
+    } catch (error) {
+      console.error("Error loading darkmode.css:", error);
+      return "";
+    } finally {
+      cssLoadPromise = null;
+    }
+  })();
+
+  return cssLoadPromise;
 }
 
 // Function to inject dark mode CSS
 async function injectDarkModeCSS() {
   if (!document.getElementById("darkModeStyles")) {
-    console.log("Injecting dark mode CSS...");
     const cssContent = await loadDarkModeCSS();
     
     if (cssContent) {
@@ -32,7 +40,6 @@ async function injectDarkModeCSS() {
       style.id = "darkModeStyles";
       style.textContent = cssContent;
       document.head.appendChild(style);
-      console.log("Dark mode CSS injected.");
     }
   }
 }
@@ -41,15 +48,25 @@ async function injectDarkModeCSS() {
 function removeDarkModeCSS() {
   const darkStyles = document.getElementById("darkModeStyles");
   if (darkStyles) {
-    console.log("Removing dark mode CSS...");
     darkStyles.remove();
-    console.log("Dark mode CSS removed.");
   }
 }
 
-// Check the current dark mode status on script load
-chrome.storage.local.get("darkModeEnabled", (data) => {
-  if (data.darkModeEnabled) {
+// Optimize: Start loading CSS immediately while checking storage in parallel
+// This reduces the delay when dark mode is enabled
+const storageCheck = new Promise<boolean>((resolve) => {
+  chrome.storage.local.get("darkModeEnabled", (data) => {
+    resolve(data.darkModeEnabled ?? false);
+  });
+});
+
+// Pre-load CSS in parallel with storage check
+const cssPreload = loadDarkModeCSS();
+
+// Apply dark mode based on storage, but CSS is already loading
+Promise.all([storageCheck, cssPreload]).then(([isEnabled]) => {
+  if (isEnabled) {
+    // CSS is already loaded, inject immediately
     injectDarkModeCSS();
   } else {
     removeDarkModeCSS();
@@ -58,8 +75,6 @@ chrome.storage.local.get("darkModeEnabled", (data) => {
 
 // Listen for messages to toggle dark mode
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("Message received in content.js:", request);
-
   if (request.darkModeEnabled) {
     injectDarkModeCSS().then(() => {
       sendResponse({ status: "done" });
@@ -70,4 +85,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   return true; // Keep the message channel open for async response
+});
+
+// Listen for changes in local storage
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  // Only listen to local storage changes
+  if (areaName === "local" && changes.darkModeEnabled) {
+    const darkModeEnabled = changes.darkModeEnabled.newValue;
+    if (darkModeEnabled) {
+      injectDarkModeCSS();
+    } else {
+      removeDarkModeCSS();
+    }
+  }
 });
