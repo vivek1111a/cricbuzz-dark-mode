@@ -11,6 +11,11 @@ a {
   color: #fff !important;
 }
 
+.bg-cbTblHdr {
+  background-color: #fff !important;
+  color: #000 !important;
+}
+
 .bg-cbLightGrayish {
   background-color: #222 !important;
 }
@@ -84,6 +89,11 @@ a {
   filter: brightness(0) invert(1) !important;
 }
 
+.cbCrtIcnDark,
+.cbCrtIcn {
+  filter: brightness(0) !important;
+}
+
 [class*="cb-text-"] {
   filter: brightness(1) !important;
 }
@@ -129,6 +139,7 @@ a {
 .bg-cbGrnCyn.text-cbDarkShadGrey {
   color: #fff !important;
 }
+
 
 [class*="text-[#a36501]"] {
   color: #c17425 !important;
