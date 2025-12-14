@@ -255,19 +255,6 @@ button .cbCrtIcn {
 
 
 
-
-
-
-
-
-
-/* Override Cricbuzz's media query for tb:bg-white */
-@media (min-width: 640px) {
-  .tb\:bg-white {
-    background-color: #424242 !important;
-  }
-}
-
 /* Override Cricbuzz's media query for wb:!bg-* classes */
 @media (min-width: 1024px) {
   .wb\:\!bg-cbWhite,
