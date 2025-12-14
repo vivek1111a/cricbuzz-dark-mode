@@ -84,6 +84,10 @@ a {
   filter: brightness(0) invert(1) !important;
 }
 
+[class*="cb-text-"] {
+  filter: brightness(1) !important;
+}
+
 .bg-cbSix {
   background-color: #d59aea!important;
 }
@@ -126,6 +130,9 @@ a {
   color: #fff !important;
 }
 
+[class*="text-[#a36501]"] {
+  color: #c17425 !important;
+}
 
 
 
@@ -166,6 +173,15 @@ a {
   }
   .wb\:text-cbTextGrayDark {
     color: #cccccc !important;
+  }
+  .wb\:\!text-black {
+    color: #fff !important;
+  }
+  .wb\:text-black {
+    color: #fff !important;
+  }
+  .wb\:text-black > div:not(:first-child) {
+    color: #fff !important;
   }
 }
 
