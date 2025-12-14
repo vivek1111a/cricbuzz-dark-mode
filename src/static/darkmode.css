@@ -223,6 +223,11 @@ button .cbCrtIcn {
   color: #b3b3b3 !important;
 }
 
+.bg-cbItmBkgDark {
+  background-color: #e1e1e1 !important;
+  color: #000 !important;
+}
+
 
 .bg-cbOffWhite {
   background-color: #4f4f4f !important;

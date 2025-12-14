@@ -100,6 +100,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 });
 
+//styling finishes here
+
 // Function to create picture-in-picture icon SVG
 function createPipIcon(): SVGSVGElement {
   const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -137,6 +139,185 @@ function createPipIcon(): SVGSVGElement {
   return icon;
 }
 
+// Function to escape HTML to prevent XSS
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+// Function to create picture-in-picture popup using documentPictureInPicture API
+async function sendPipPopupRequest(matchCard: Element): Promise<void> {
+  const matchLink = matchCard.querySelector('a[href*="/live-cricket-scores/"], a[href*="/cricket-scores/"]') as HTMLAnchorElement;
+  if (!matchLink) return;
+  
+  const matchUrl = matchLink.href;
+  const matchTitle = matchLink.getAttribute('title') || 'Match Details';
+  
+  // Extract match information more accurately
+  const teamElements = Array.from(matchCard.querySelectorAll('.flex.items-center.gap-2'));
+  const scoreElements = Array.from(matchCard.querySelectorAll('.font-medium'));
+  
+  // Get team names (text after flag images)
+  const team1Info = teamElements[0]?.textContent?.trim().replace(/\s+/g, ' ') || '';
+  const team1Score = scoreElements[0]?.textContent?.trim() || '';
+  const team2Info = teamElements[1]?.textContent?.trim().replace(/\s+/g, ' ') || '';
+  const team2Score = scoreElements[1]?.textContent?.trim() || '';
+  
+  // Get match status
+  const statusElement = matchCard.querySelector('.text-cbLive, .text-cbPreview, .text-cbComplete, [class*="text-cb"]');
+  const matchStatus = statusElement?.textContent?.trim() || '';
+  
+  // Check if documentPictureInPicture API is available
+  if (!('documentPictureInPicture' in window)) {
+    // Fallback to background script if API not available
+    chrome.runtime.sendMessage({
+      action: 'createPipPopup',
+      matchData: {
+        matchTitle,
+        team1Info,
+        team1Score,
+        team2Info,
+        team2Score,
+        matchStatus,
+        matchUrl
+      }
+    });
+    return;
+  }
+  
+  try {
+    // Request PiP window using documentPictureInPicture API
+    const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
+      width: 320,
+      height: 250
+    });
+    
+    // Set up the PiP window content
+    pipWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 320px;
+      height: 250px;
+      margin: 0;
+      padding: 0;
+      background-color: #424242;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    .header {
+      background-color: #2a2a2a;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #555;
+      border-radius: 8px 8px 0 0;
+    }
+    .title {
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      border-radius: 4px;
+    }
+    .close-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .content {
+      padding: 12px;
+      color: #fff;
+      font-size: 13px;
+    }
+    .team-row {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .score {
+      font-weight: 600;
+    }
+    .status {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #555;
+      color: #4fc2a3;
+      font-size: 11px;
+    }
+    .view-match-btn {
+      display: block;
+      margin-top: 12px;
+      padding: 8px;
+      background-color: #4fc2a3;
+      color: #fff;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .view-match-btn:hover {
+      background-color: #3fb893;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">${escapeHtml(matchTitle)}</div>
+    <button class="close-btn" onclick="window.close()">×</button>
+  </div>
+  <div class="content">
+    <div class="team-row">
+      <span>${escapeHtml(team1Info)}</span>
+      <span class="score">${escapeHtml(team1Score)}</span>
+    </div>
+    <div class="team-row">
+      <span>${escapeHtml(team2Info)}</span>
+      <span class="score">${escapeHtml(team2Score)}</span>
+    </div>
+    <div class="status">${escapeHtml(matchStatus)}</div>
+    <a href="${escapeHtml(matchUrl)}" target="_blank" class="view-match-btn">View Full Match →</a>
+  </div>
+</body>
+</html>
+    `);
+    pipWindow.document.close();
+  } catch (error) {
+    console.error('Error creating PiP window:', error);
+  }
+}
+
 // Function to add picture-in-picture icon to all match cards
 function addPointsTableIcon() {
   // Find all match cards (shadow rounded-md divs containing match links)
@@ -146,8 +327,6 @@ function addPointsTableIcon() {
     // Find the match link (the main <a> tag with live-cricket-scores or similar)
     const matchLink = matchCard.querySelector('a[href*="/live-cricket-scores/"], a[href*="/cricket-scores/"]') as HTMLAnchorElement;
     if (!matchLink) return;
-    
-    const matchUrl = matchLink.href;
     
     // Find the bottom div with links (bg-neutral-300 or similar)
     let bottomDiv = matchCard.querySelector('div.bg-neutral-300, div[class*="bg-neutral"]') as HTMLElement;
@@ -162,20 +341,31 @@ function addPointsTableIcon() {
     // Check if icon already exists
     if (bottomDiv.querySelector('.pip-icon-link')) return;
     
-    // Create clickable link with icon
-    const iconLink = document.createElement('a');
-    iconLink.href = matchUrl;
-    iconLink.className = 'cursor-pointer hover:underline pip-icon-link';
-    iconLink.title = 'View Match';
-    iconLink.style.display = 'inline-flex';
-    iconLink.style.alignItems = 'center';
-    iconLink.style.gap = '6px';
+    // Create clickable button with icon
+    const iconButton = document.createElement('button');
+    iconButton.className = 'cursor-pointer hover:underline pip-icon-link';
+    iconButton.title = 'Picture in Picture';
+    iconButton.style.cssText = `
+      background: none;
+      border: none;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    `;
     
     const icon = createPipIcon();
-    iconLink.appendChild(icon);
+    iconButton.appendChild(icon);
     
-    // Insert icon link at the beginning of the bottom div
-    bottomDiv.insertBefore(iconLink, bottomDiv.firstChild);
+    iconButton.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      sendPipPopupRequest(matchCard);
+    };
+    
+    // Insert icon button at the beginning of the bottom div
+    bottomDiv.insertBefore(iconButton, bottomDiv.firstChild);
   });
 }
 
