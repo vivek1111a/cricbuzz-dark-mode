@@ -11,6 +11,10 @@ a {
   color: #fff !important;
 }
 
+p {
+  color: #fff !important;
+}
+
 .bg-cbTblHdr {
   background-color: #fff !important;
   color: #000 !important;
@@ -46,7 +50,7 @@ a {
 }
 
 .text-cbTxtSec {
-  color: #a0a0a0 !important;
+  color: #b5b5b5 !important;
 }
 .text-cbTxtPrim {
   color: white !important;
@@ -92,6 +96,25 @@ a {
 .cbCrtIcnDark,
 .cbCrtIcn {
   filter: brightness(0) !important;
+}
+
+button .cbCrtIcnDark,
+button .cbCrtIcn {
+  filter: brightness(0) invert(1) !important;
+}
+
+.text-black.cbCrtIcnDark,
+.text-black.cbCrtIcn,
+[class*="tb:cbItmBkgDark"] .cbCrtIcnDark,
+[class*="tb:cbItmBkgDark"] .cbCrtIcn,
+[class*="tb:bg-cbGrnCyn"] .cbCrtIcnDark,
+[class*="tb:bg-cbGrnCyn"] .cbCrtIcn {
+  filter: brightness(0) invert(1) !important;
+}
+
+.cbPlusIco.cbCrtIcnDark,
+.cbPlusIco.cbCrtIcn {
+  filter: brightness(0) invert(1) !important;
 }
 
 [class*="cb-text-"] {
@@ -157,6 +180,35 @@ a {
   background-color: #555 !important;
 }
 
+[class*="tb:bg-white"]:hover {
+  background-color: #424242 !important;
+}
+
+[class*="text-[#000000DE]"] {
+  color: #fff !important;
+}
+
+[class*="bg-[#f5f5f5]"] {
+  background-color: #2c2c2c !important;
+}
+
+[class*="hover:bg-zinc-300"]:hover {
+  background-color: #424242 !important;
+}
+
+.text-gray-800 {
+  color: #d0d0d0 !important;
+}
+
+
+.bg-cbOffWhite {
+  background-color: #4f4f4f !important;
+}
+
+
+.bg-gray-200 {
+  background-color: #2c2c2c !important;
+}
 
 
 
@@ -165,6 +217,28 @@ a {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Override Cricbuzz's media query for tb:bg-white */
+@media (min-width: 640px) {
+  .tb\:bg-white {
+    background-color: #424242 !important;
+  }
+}
 
 /* Override Cricbuzz's media query for wb:!bg-* classes */
 @media (min-width: 1024px) {
