@@ -1,8 +1,128 @@
 /* General background and text color */
 body {
   background-color: #222 !important;
-  color: #e0e0e0 !important;
+  text-color: #fff !important;
 }
-.carousal-item > div {
+
+h1{
+  color: #fff !important;
+}
+
+a {
+  color: #fff !important;
+}
+
+.bg-cbLightGrayish {
+  background-color: #222 !important;
+}
+.wb:bg-cbLightGrayish {
+  background-color: #222 !important;
+}
+.bg-cbWhite {
   background-color: #424242 !important;
+}
+.bg-white {
+  background-color: #424242 !important;
+}
+.min-h-page {
+  background-color: #424242 !important;
+}
+.bg-transparent {
+  background-color: transparent !important;
+}
+.bg-cbGrnCyn  {
+  /* background-color: #424242!important; */
+}
+.text-cbTxtSec {
+  color: #7a7a7a !important;
+}
+.text-cbTxtPrim {
+  color: white !important;
+}
+.bg-cbThmClrLgt {
+  background-color: #008000 important;
+}
+.text-cbDarkShadGrey {
+  color: #c4c4c4 !important;
+}
+.mb:bg-white  {
+  background-color: #424242 !important;
+}
+.text-cbTextGrayDark {
+  color: #888888 !important;
+}
+
+
+.text-black {
+  color: #fff !important;
+}
+
+.cbSubcriptionIcon {
+  color: #fff !important;
+}
+
+.cbPlusIco {
+  color: #fff !important;
+  fill: #fff !important;
+}
+
+.cbTeamsIcon {
+  color: #fff !important;
+  fill: #fff !important;
+}
+
+
+/* Override Cricbuzz's media query for wb:!bg-* classes */
+@media (min-width: 1024px) {
+  .wb\:\!bg-cbWhite,
+  .wb\:\!bg-white {
+    background-color: #424242 !important;
+  }
+  .wb\:bg-cbWhite {
+    background-color: #424242 !important;
+  }
+  .wb\:bg-cbLightGrayish {
+    background-color: #424242 !important;
+    color: #fff !important;
+  }
+  .wb\:text-cbTextGrayDark {
+    color: #cccccc !important;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.bg-neutral-300 {
+  background-color: #555 !important;
+}
+.bg-neutral-400 {
+  background-color: #444 !important;
+}
+.bg-neutral-500 {
+  background-color: #333 !important;
+}
+.bg-neutral-600 {
+  background-color: #222 !important;
+}
+.bg-neutral-700 {
+  background-color: #111 !important;
 }
