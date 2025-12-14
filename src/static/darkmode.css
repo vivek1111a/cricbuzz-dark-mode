@@ -196,6 +196,15 @@ button .cbCrtIcn {
   background-color: #424242 !important;
 }
 
+[class*="tb:bg-[#CFE0DB]"] {
+  background-color: #575757 !important;
+}
+
+[class*="hover:bg-cbBorderGrey"]:hover {
+  background-color: #4f4f4f !important;
+}
+
+
 .text-gray-800 {
   color: #d0d0d0 !important;
 }

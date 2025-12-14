@@ -34,7 +34,7 @@ async function loadDarkModeCSS(): Promise<string> {
 async function injectDarkModeCSS() {
   if (!document.getElementById("darkModeStyles")) {
     const cssContent = await loadDarkModeCSS();
-    
+
     if (cssContent) {
       const style = document.createElement("style");
       style.id = "darkModeStyles";
