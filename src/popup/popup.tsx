@@ -43,22 +43,7 @@ const App: React.FC<{}> = () => {
 
         const tabId = tabs[0].id;
 
-        // Check if the tab is a cricbuzz page
-        if (tabs[0].url && tabs[0].url.includes("cricbuzz.com")) {
-          // Execute content script if needed
-          chrome.scripting.executeScript(
-            {
-              target: { tabId },
-              files: ["contentScript.js"],
-            },
-            () => {
-              // Send message to content script
-              chrome.tabs.sendMessage(tabId, {
-                darkModeEnabled: newDarkModeState,
-              });
-            }
-          );
-        }
+        chrome.runtime.sendMessage({ action: "urlchanged" });
       });
     });
   };
