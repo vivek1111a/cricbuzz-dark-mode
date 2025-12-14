@@ -1,7 +1,7 @@
 /* General background and text color */
 body {
   background-color: #222 !important;
-  text-color: #fff !important;
+  color: #fff !important;
 }
 
 h1{
@@ -33,6 +33,16 @@ a {
 .bg-cbGrnCyn  {
   /* background-color: #424242!important; */
 }
+.bg-cbInactTab {
+  background-color: #47927e !important;
+}
+.bg-cbAntiFlash {
+  background-color: #2b3a37 !important;
+}
+.bg-pink-50 {
+  background-color: #3f3536 !important;
+}
+
 .text-cbTxtSec {
   color: #7a7a7a !important;
 }
@@ -58,18 +68,41 @@ a {
 }
 
 .cbSubcriptionIcon {
-  color: #fff !important;
+  filter: brightness(0) invert(1) !important;
 }
 
 .cbPlusIco {
-  color: #fff !important;
-  fill: #fff !important;
+  filter: brightness(0) invert(1) !important;
 }
 
 .cbTeamsIcon {
-  color: #fff !important;
-  fill: #fff !important;
+  filter: brightness(0) invert(1) !important;
 }
+
+.cbMoreRightIconDark {
+  filter: brightness(0) invert(1) !important;
+}
+
+.cbTrophyIcon {
+  filter: brightness(0) invert(1) !important;
+}
+
+.bg-cbSix {
+  background-color: #d59aea!important;
+}
+
+.bg-cbFour {
+  background-color: #2fb9d6!important;
+}
+
+.bg-cbFifty {
+  background-color: #bca98b!important;
+}
+
+.bg-cbHundred {
+  background-color: #5eb19d!important;
+}
+
 
 
 /* Override Cricbuzz's media query for wb:!bg-* classes */
@@ -79,6 +112,9 @@ a {
     background-color: #424242 !important;
   }
   .wb\:bg-cbWhite {
+    background-color: #424242 !important;
+  }
+  .wb\:bg-white {
     background-color: #424242 !important;
   }
   .wb\:bg-cbLightGrayish {
