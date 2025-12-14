@@ -204,9 +204,19 @@ button .cbCrtIcn {
   background-color: #4f4f4f !important;
 }
 
+.scorecard-bat-grid{
+  background-color: #4c4c4c !important;
+}
 
 .text-gray-800 {
   color: #d0d0d0 !important;
+}
+
+.bg-gray-50 {
+  background-color: #4f4f4f !important;
+}
+.leading-relaxed {
+  color: #b3b3b3 !important;
 }
 
 
