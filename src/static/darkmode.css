@@ -1,7 +1,6 @@
 /* General background and text color */
 body {
   background-color: #222 !important;
-  color: #fff !important;
 }
 
 h1{
@@ -30,9 +29,7 @@ a {
 .bg-transparent {
   background-color: transparent !important;
 }
-.bg-cbGrnCyn  {
-  /* background-color: #424242!important; */
-}
+
 .bg-cbInactTab {
   background-color: #47927e !important;
 }
@@ -44,7 +41,7 @@ a {
 }
 
 .text-cbTxtSec {
-  color: #7a7a7a !important;
+  color: #a0a0a0 !important;
 }
 .text-cbTxtPrim {
   color: white !important;
@@ -102,6 +99,52 @@ a {
 .bg-cbHundred {
   background-color: #5eb19d!important;
 }
+
+
+.bg-cbBorderGrey {
+  background-color: #2a2a2a!important;
+}
+
+.bg-cbGrpHdrBkg {
+  background-color: #47927e !important;
+  color: #fff !important;
+}
+
+.text-cbTextLink {
+  color: #4a89e7!important;
+}
+.scorecard-bat-grid , .scorecard-fow-grid , .scorecard-bowl-grid,.scorecard-player-grid {
+  color: #fff !important;
+}
+
+
+.bg-cbGrnCyn {
+  background-color: #4fc2a3!important;
+}
+
+.bg-cbGrnCyn.text-cbDarkShadGrey {
+  color: #fff !important;
+}
+
+
+
+
+
+/* Override hover:bg-[#ddd] for dark mode */
+[class*="hover:bg-[#ddd]"]:hover {
+  background-color: #555 !important;
+}
+
+[class*="hover:bg-[#d1d1d1]"]:hover {
+  background-color: #555 !important;
+}
+
+
+
+
+
+
+
 
 
 
