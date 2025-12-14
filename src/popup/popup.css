@@ -3,6 +3,7 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease;
 }
 
 .popup_body {
@@ -10,11 +11,22 @@ body {
   min-height: 10rem;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.3s ease;
+}
+
+.popup_body.dark {
+  background-color: #222;
 }
 
 .popup_header {
   padding: 1rem;
   border-bottom: 1px solid #e0e0e0;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.popup_body.dark .popup_header {
+  border-bottom-color: #424242;
+  background-color: #2a2a2a;
 }
 
 .popup_header h1 {
@@ -22,6 +34,11 @@ body {
   font-size: 1.2rem;
   font-weight: 600;
   color: #333;
+  transition: color 0.3s ease;
+}
+
+.popup_body.dark .popup_header h1 {
+  color: #fff;
 }
 
 .popup_content {
@@ -29,30 +46,98 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.popup_body.dark .popup_content {
+  background-color: #222;
 }
 
 .toggle-button {
-  padding: 10px 20px;
+  padding: 12px 20px;
   font-size: 16px;
   background-color: #80c7fa;
   color: #000;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   width: 100%;
   font-weight: 500;
-  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-button.light-mode {
+  background-color: #80c7fa;
+  color: #000;
+}
+
+.toggle-button.dark-mode {
+  background-color: #424242;
+  color: #fff;
 }
 
 .toggle-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-button.light-mode:hover:not(:disabled) {
   background-color: #6bb3f0;
 }
 
+.toggle-button.dark-mode:hover:not(:disabled) {
+  background-color: #555;
+}
+
 .toggle-button:active:not(:disabled) {
-  background-color: #5aa0d8;
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .toggle-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+}
+
+.icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+.moon-icon {
+  transform: rotate(0deg);
+  opacity: 1;
+}
+
+.sun-icon {
+  transform: rotate(0deg);
+  opacity: 1;
+}
+
+.toggle-button.dark-mode .moon-icon {
+  transform: rotate(360deg);
+}
+
+.toggle-button.light-mode .sun-icon {
+  transform: rotate(360deg);
+}
+
+.button-text {
+  transition: opacity 0.3s ease;
 }

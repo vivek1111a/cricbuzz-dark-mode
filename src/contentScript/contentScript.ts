@@ -99,3 +99,105 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
   }
 });
+
+// Function to create picture-in-picture icon SVG
+function createPipIcon(): SVGSVGElement {
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.setAttribute("class", "pip-icon");
+  icon.setAttribute("width", "14");
+  icon.setAttribute("height", "14");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("fill", "none");
+  icon.setAttribute("stroke", "currentColor");
+  icon.setAttribute("stroke-width", "2");
+  icon.setAttribute("stroke-linecap", "round");
+  icon.setAttribute("stroke-linejoin", "round");
+  icon.style.display = "inline-block";
+  icon.style.verticalAlign = "middle";
+  icon.style.opacity = "0.8";
+  
+  // Create the picture-in-picture icon paths (two overlapping rectangles)
+  const rect1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect1.setAttribute("x", "2");
+  rect1.setAttribute("y", "6");
+  rect1.setAttribute("width", "14");
+  rect1.setAttribute("height", "12");
+  rect1.setAttribute("rx", "2");
+  
+  const rect2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect2.setAttribute("x", "10");
+  rect2.setAttribute("y", "2");
+  rect2.setAttribute("width", "12");
+  rect2.setAttribute("height", "10");
+  rect2.setAttribute("rx", "2");
+  
+  icon.appendChild(rect1);
+  icon.appendChild(rect2);
+  
+  return icon;
+}
+
+// Function to add picture-in-picture icon to all match cards
+function addPointsTableIcon() {
+  // Find all match cards (shadow rounded-md divs containing match links)
+  const matchCards = document.querySelectorAll('div.shadow.rounded-md');
+  
+  matchCards.forEach((matchCard) => {
+    // Find the match link (the main <a> tag with live-cricket-scores or similar)
+    const matchLink = matchCard.querySelector('a[href*="/live-cricket-scores/"], a[href*="/cricket-scores/"]') as HTMLAnchorElement;
+    if (!matchLink) return;
+    
+    const matchUrl = matchLink.href;
+    
+    // Find the bottom div with links (bg-neutral-300 or similar)
+    let bottomDiv = matchCard.querySelector('div.bg-neutral-300, div[class*="bg-neutral"]') as HTMLElement;
+    
+    // If bottom div doesn't exist, create it
+    if (!bottomDiv) {
+      bottomDiv = document.createElement('div');
+      bottomDiv.className = 'bg-neutral-300 rounded-b-md overflow-hidden dark:bg-cbHdrBkgDark dark:text-cbTxtSec flex justify-end gap-2 p-2 wb:py-1 wb:px-2 uppercase text-xxs';
+      matchCard.appendChild(bottomDiv);
+    }
+    
+    // Check if icon already exists
+    if (bottomDiv.querySelector('.pip-icon-link')) return;
+    
+    // Create clickable link with icon
+    const iconLink = document.createElement('a');
+    iconLink.href = matchUrl;
+    iconLink.className = 'cursor-pointer hover:underline pip-icon-link';
+    iconLink.title = 'View Match';
+    iconLink.style.display = 'inline-flex';
+    iconLink.style.alignItems = 'center';
+    iconLink.style.gap = '6px';
+    
+    const icon = createPipIcon();
+    iconLink.appendChild(icon);
+    
+    // Insert icon link at the beginning of the bottom div
+    bottomDiv.insertBefore(iconLink, bottomDiv.firstChild);
+  });
+}
+
+// Function to observe DOM changes and add icon when Points Table link appears
+function observeAndAddIcon() {
+  // Try to add icon immediately if link already exists
+  addPointsTableIcon();
+  
+  // Observe for new links being added (for dynamic content)
+  const observer = new MutationObserver(() => {
+    addPointsTableIcon();
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+// Add picture-in-picture icon to Points Table link
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", observeAndAddIcon);
+} else {
+  observeAndAddIcon();
+}
