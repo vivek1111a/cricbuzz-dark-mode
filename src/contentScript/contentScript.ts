@@ -68,8 +68,239 @@ function extractMatchDataFromDOM(): any {
   let crr = '';
   let req = '';
   
+  // Check for finished match first (sticky-mcomplete)
+  const finishedMatchContainer = doc.querySelector('#sticky-mcomplete');
+  
+  // Check for live match container
   const miniscoreContainer = doc.querySelector('#miniscore-branding-container');
-  if (miniscoreContainer) {
+  
+  // Check if match hasn't started yet - only if there's no live match data
+  // Look for countdown or "Match starts at" text, but only if no live scores are present
+  const bodyText = doc.body.textContent || '';
+  const hasLiveScores = miniscoreContainer && (
+    miniscoreContainer.querySelector('.flex.flex-row.font-bold.text-xl') !== null ||
+    miniscoreContainer.querySelector('.text-cbTxtLive') !== null
+  );
+  
+  const hasCountdown = !finishedMatchContainer && !hasLiveScores && (
+                       bodyText.includes('Match starts at') || 
+                       doc.querySelector('[class*="countdown"]') !== null ||
+                       (bodyText.match(/Match\s+starts\s+at/i) !== null && 
+                        !miniscoreContainer?.textContent?.match(/\d+\s*runs?/i))
+                     );
+  
+  if (hasCountdown) {
+    // Extract team names from h1 element (format: "Team1 vs Team2")
+    const h1Element = doc.querySelector('h1');
+    if (h1Element) {
+      // Clone the h1 to avoid modifying the original
+      const h1Clone = h1Element.cloneNode(true) as HTMLElement;
+      // Remove all span elements to get clean text
+      const spans = h1Clone.querySelectorAll('span');
+      spans.forEach(span => span.remove());
+      // Get text content without spans
+      let h1Text = h1Clone.textContent || '';
+      
+      // Try to find "vs" with different spacing
+      let vsIndex = h1Text.toLowerCase().indexOf(' vs ');
+      if (vsIndex <= 0) {
+        vsIndex = h1Text.toLowerCase().indexOf(' vs');
+      }
+      if (vsIndex <= 0) {
+        vsIndex = h1Text.toLowerCase().indexOf('vs ');
+      }
+      
+      if (vsIndex > 0) {
+        // Extract first team (everything before "vs")
+        team1Name = h1Text.substring(0, vsIndex).trim();
+        // Find where "vs" ends
+        let vsEndIndex = vsIndex;
+        if (h1Text.substring(vsIndex, vsIndex + 4).toLowerCase() === ' vs ') {
+          vsEndIndex = vsIndex + 4;
+        } else if (h1Text.substring(vsIndex, vsIndex + 3).toLowerCase() === ' vs') {
+          vsEndIndex = vsIndex + 3;
+        } else if (h1Text.substring(vsIndex, vsIndex + 3).toLowerCase() === 'vs ') {
+          vsEndIndex = vsIndex + 3;
+        }
+        
+        // Extract second team (everything after "vs" until comma or end)
+        const afterVs = h1Text.substring(vsEndIndex).trim();
+        const commaIndex = afterVs.indexOf(',');
+        if (commaIndex > 0) {
+          team2Name = afterVs.substring(0, commaIndex).trim();
+        } else {
+          // Try to find end of team name (before "Match" or other keywords)
+          const matchIndex = afterVs.toLowerCase().indexOf(' match');
+          if (matchIndex > 0) {
+            team2Name = afterVs.substring(0, matchIndex).trim();
+          } else {
+            team2Name = afterVs.trim();
+          }
+        }
+      }
+    }
+    
+    // If still no team names, try getting from the first text node of h1 directly
+    if ((!team1Name || !team2Name) && h1Element) {
+      // Get all child text nodes
+      const walker = doc.createTreeWalker(
+        h1Element,
+        NodeFilter.SHOW_TEXT,
+        null
+      );
+      let textNode;
+      let fullText = '';
+      while (textNode = walker.nextNode()) {
+        const parent = textNode.parentElement;
+        if (parent && parent.tagName !== 'SPAN') {
+          fullText += textNode.textContent || '';
+        }
+      }
+      if (fullText) {
+        const vsIndex = fullText.toLowerCase().indexOf(' vs ');
+        if (vsIndex > 0) {
+          team1Name = team1Name || fullText.substring(0, vsIndex).trim();
+          const afterVs = fullText.substring(vsIndex + 4).trim();
+          const commaIndex = afterVs.indexOf(',');
+          team2Name = team2Name || (commaIndex > 0 ? afterVs.substring(0, commaIndex).trim() : afterVs.trim());
+        }
+      }
+    }
+    
+    // Fallback 1: Try to extract from page title if h1 didn't work
+    if ((!team1Name || !team2Name) && titleElement) {
+      const titleText = titleElement.textContent || '';
+      let vsIndex = titleText.toLowerCase().indexOf(' vs ');
+      if (vsIndex > 0) {
+        team1Name = team1Name || titleText.substring(0, vsIndex).trim();
+        const afterVs = titleText.substring(vsIndex + 4).trim();
+        const commaIndex = afterVs.indexOf(',');
+        if (commaIndex > 0) {
+          team2Name = team2Name || afterVs.substring(0, commaIndex).trim();
+        } else {
+          team2Name = team2Name || afterVs.substring(0, afterVs.indexOf(' -') || afterVs.length).trim();
+        }
+      }
+    }
+    
+    // Fallback 2: try to extract from squad sections if h1 didn't work
+    if (!team1Name || !team2Name) {
+      const squadSections = doc.querySelectorAll('b');
+      const foundTeams: string[] = [];
+      for (const boldEl of Array.from(squadSections)) {
+        const boldText = boldEl.textContent?.trim() || '';
+        if (boldText.includes('Squad:')) {
+          // Get parent element text
+          const parentEl = boldEl.parentElement;
+          if (parentEl) {
+            // Get text before "Squad:"
+            const parentText = parentEl.textContent || '';
+            const squadIndex = parentText.toLowerCase().indexOf(' squad:');
+            if (squadIndex > 0) {
+              // Extract team name (everything before "Squad:")
+              const teamName = parentText.substring(0, squadIndex).trim();
+              // Remove any leading "Squads:" or other text
+              const cleanTeamName = teamName.replace(/^Squads:\s*/i, '').trim();
+              if (cleanTeamName && cleanTeamName.length > 0 && !foundTeams.includes(cleanTeamName)) {
+                foundTeams.push(cleanTeamName);
+              }
+            }
+          }
+        }
+      }
+      // Assign found teams
+      if (foundTeams.length >= 2) {
+        if (!team1Name) team1Name = foundTeams[0];
+        if (!team2Name) team2Name = foundTeams[1];
+      } else if (foundTeams.length === 1) {
+        if (!team1Name) team1Name = foundTeams[0];
+        else if (!team2Name) team2Name = foundTeams[0];
+      }
+    }
+    
+    // Extract match start time/status from DOM
+    const startTimeElement = doc.querySelector('.text-cbPreview');
+    if (startTimeElement) {
+      const startTimeText = startTimeElement.textContent?.trim() || '';
+      if (startTimeText.includes('Match starts at')) {
+        matchStatus = startTimeText;
+      } else {
+        matchStatus = 'Match not started yet';
+      }
+    } else {
+      // Fallback to text search
+      const startTimeMatch = bodyText.match(/Match\s+starts\s+at\s+([^\.]+)/i);
+      if (startTimeMatch) {
+        matchStatus = `Match starts at ${startTimeMatch[1].trim()}`;
+      } else {
+        matchStatus = 'Match not started yet';
+      }
+    }
+    
+    // For upcoming matches, don't show scores
+    team1Score = 'Yet to bat';
+    team2Score = 'Yet to bat';
+  }
+  
+  if (finishedMatchContainer) {
+    // Extract match result/status
+    const resultEl = finishedMatchContainer.querySelector('.text-cbTextLink');
+    if (resultEl) {
+      matchStatus = resultEl.textContent?.trim() || '';
+    }
+    
+    // Extract team scores from finished match structure
+    const scoresContainer = finishedMatchContainer.querySelector('.text-lg.font-bold');
+    if (scoresContainer) {
+      const teamRows = scoresContainer.querySelectorAll('.flex.flex-row');
+      if (teamRows.length >= 2) {
+        // First team
+        const team1Row = teamRows[0];
+        const team1NameEl = team1Row.querySelector('div:first-child');
+        const team1ScoreEl = team1Row.querySelector('div:last-child');
+        if (team1NameEl && team1ScoreEl) {
+          team1Name = team1NameEl.textContent?.trim() || '';
+          // Extract score - handle nested spans like "212<span>/5</span><span>(20)</span>"
+          const team1ScoreText = team1ScoreEl.textContent?.trim() || '';
+          // Format: "212/5(20)" -> "212/5 (20)"
+          team1Score = team1ScoreText.replace(/\s+/g, '').replace(/(\d+)\/(\d+)\((\d+)\)/, '$1/$2 ($3)');
+          // If format doesn't match, try to extract parts manually
+          if (!team1Score.match(/\d+\/\d+\s*\(\d+\)/)) {
+            const runsMatch = team1ScoreText.match(/(\d+)/);
+            const wicketsMatch = team1ScoreText.match(/\/(\d+)/);
+            const oversMatch = team1ScoreText.match(/\((\d+)\)/);
+            if (runsMatch && wicketsMatch && oversMatch) {
+              team1Score = `${runsMatch[1]}/${wicketsMatch[1]} (${oversMatch[1]})`;
+            }
+          }
+        }
+        
+        // Second team
+        const team2Row = teamRows[1];
+        const team2NameEl = team2Row.querySelector('div:first-child');
+        const team2ScoreEl = team2Row.querySelector('div:last-child');
+        if (team2NameEl && team2ScoreEl) {
+          team2Name = team2NameEl.textContent?.trim() || '';
+          // Extract score - handle nested spans
+          const team2ScoreText = team2ScoreEl.textContent?.trim() || '';
+          // Format: "198/8(20)" -> "198/8 (20)"
+          team2Score = team2ScoreText.replace(/\s+/g, '').replace(/(\d+)\/(\d+)\((\d+)\)/, '$1/$2 ($3)');
+          // If format doesn't match, try to extract parts manually
+          if (!team2Score.match(/\d+\/\d+\s*\(\d+\)/)) {
+            const runsMatch = team2ScoreText.match(/(\d+)/);
+            const wicketsMatch = team2ScoreText.match(/\/(\d+)/);
+            const oversMatch = team2ScoreText.match(/\((\d+)\)/);
+            if (runsMatch && wicketsMatch && oversMatch) {
+              team2Score = `${runsMatch[1]}/${wicketsMatch[1]} (${oversMatch[1]})`;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Only extract from live match container if we haven't found teams yet and it's not an upcoming match
+  if (miniscoreContainer && !team1Name && !team2Name && !hasCountdown && !finishedMatchContainer) {
     // Extract team 1 (first team, usually smaller font)
     const team1Row = miniscoreContainer.querySelector('.flex.flex-row.font-light.text-base.text-gray-600');
     if (team1Row) {
@@ -93,6 +324,19 @@ function extractMatchDataFromDOM(): any {
       const reqMatch = team2Text.match(/REQ[:\s]*(\d+\.\d+)/i);
       if (crrMatch) crr = `CRR: ${crrMatch[1]}`;
       if (reqMatch) req = `REQ: ${reqMatch[1]}`;
+    }
+    
+    // Extract CRR and REQ from entire miniscore container if not found in team2Row
+    if (!crr || !req) {
+      const miniscoreText = miniscoreContainer.textContent || '';
+      if (!crr) {
+        const crrMatch = miniscoreText.match(/CRR[:\s]*(\d+\.\d+)/i);
+        if (crrMatch) crr = `CRR: ${crrMatch[1]}`;
+      }
+      if (!req) {
+        const reqMatch = miniscoreText.match(/REQ[:\s]*(\d+\.\d+)/i);
+        if (reqMatch) req = `REQ: ${reqMatch[1]}`;
+      }
     }
     
     // Extract match status
@@ -123,16 +367,19 @@ function extractMatchDataFromDOM(): any {
       const statusMatch = allText.match(/(?:need|require).*?(?:\d+.*?runs?.*?\d+.*?balls?|balls?.*?\d+)/i);
       matchStatus = statusMatch ? statusMatch[0] : '';
     }
-    
-    if (!crr) {
-      const crrMatch = allText.match(/CRR[:\s]*(\d+\.\d+)/i);
-      crr = crrMatch ? `CRR: ${crrMatch[1]}` : '';
-    }
-    
-    if (!req) {
-      const reqMatch = allText.match(/REQ[:\s]*(\d+\.\d+)/i);
-      req = reqMatch ? `REQ: ${reqMatch[1]}` : '';
-    }
+  }
+  
+  // Always try to extract CRR and REQ from body text if not found yet
+  if (!crr) {
+    const allText = doc.body.innerText || doc.body.textContent || '';
+    const crrMatch = allText.match(/CRR[:\s]*(\d+\.\d+)/i);
+    if (crrMatch) crr = `CRR: ${crrMatch[1]}`;
+  }
+  
+  if (!req) {
+    const allText = doc.body.innerText || doc.body.textContent || '';
+    const reqMatch = allText.match(/REQ[:\s]*(\d+\.\d+)/i);
+    if (reqMatch) req = `REQ: ${reqMatch[1]}`;
   }
   
   // Extract batters from scorecard-bat-grid
@@ -212,25 +459,68 @@ function extractMatchDataFromDOM(): any {
     }
   });
   
-  // Extract Recent balls
+  // Extract Recent balls - try multiple selectors
   let recent = '';
-  const recentElement = doc.querySelector('p.text-\\[\\#666\\]');
-  if (recentElement) {
-    const recentText = recentElement.textContent || '';
-    const recentMatch = recentText.match(/Recent\s*:?\s*(.+)/i);
-    if (recentMatch) {
-      recent = recentMatch[1].trim();
+  
+  // First, try to find the hidden wb:flex div that contains Recent section
+  const recentContainer = doc.querySelector('.hidden.wb\\:flex.items-start.justify-between');
+  if (recentContainer) {
+    // Look for the div with tb:flex class inside
+    const recentInnerDiv = recentContainer.querySelector('.tb\\:flex.gap-2');
+    if (recentInnerDiv) {
+      // Get all paragraph tags
+      const paragraphs = recentInnerDiv.querySelectorAll('p');
+      if (paragraphs.length >= 2) {
+        // The second paragraph contains the actual recent balls
+        const recentBallsText = paragraphs[1].textContent?.trim() || '';
+        if (recentBallsText) {
+          recent = recentBallsText;
+        }
+      }
+      // If that doesn't work, try getting all text and extracting after "Recent :"
+      if (!recent) {
+        const allText = recentInnerDiv.textContent || '';
+        const recentMatch = allText.match(/Recent\s*:?\s*(.+)/i);
+        if (recentMatch) {
+          recent = recentMatch[1].trim();
+        }
+      }
     }
   }
-  // Fallback: try to find in the hidden wb:flex div
-  if (!recent) {
-    const recentDiv = doc.querySelector('.hidden.wb\\:flex p.text-\\[\\#666\\]');
-    if (recentDiv) {
-      const recentText = recentDiv.textContent || '';
-      const recentMatch = recentText.match(/Recent\s*:?\s*(.+)/i);
+  
+  // Fallback: try to find in miniscore container
+  if (!recent && miniscoreContainer) {
+    // Search for the hidden wb:flex div within miniscore container
+    const recentInMiniscore = miniscoreContainer.querySelector('.hidden.wb\\:flex');
+    if (recentInMiniscore) {
+      const recentInnerDiv = recentInMiniscore.querySelector('.tb\\:flex');
+      if (recentInnerDiv) {
+        const paragraphs = recentInnerDiv.querySelectorAll('p');
+        if (paragraphs.length >= 2) {
+          const recentBallsText = paragraphs[1].textContent?.trim() || '';
+          if (recentBallsText) {
+            recent = recentBallsText;
+          }
+        }
+      }
+    }
+    
+    // Also try searching all text in miniscore container
+    if (!recent) {
+      const miniscoreText = miniscoreContainer.textContent || '';
+      const recentMatch = miniscoreText.match(/Recent\s*:?\s*([0-9\sW]+)/i);
       if (recentMatch) {
         recent = recentMatch[1].trim();
       }
+    }
+  }
+  
+  // Fallback: search entire body for "Recent :" pattern
+  if (!recent) {
+    const bodyText = doc.body.textContent || '';
+    const recentMatch = bodyText.match(/Recent\s*:?\s*([0-9\sW]+)/i);
+    if (recentMatch) {
+      recent = recentMatch[1].trim();
     }
   }
   
@@ -244,13 +534,14 @@ function extractMatchDataFromDOM(): any {
     team1Score: team1Score || '0',
     team2Name: team2Name || 'Team 2',
     team2Score: team2Score || '0',
-    matchStatus: matchStatus || 'Match in progress',
+    matchStatus: matchStatus || 'Match will start soon',
     batters: batters.length > 0 ? batters : [],
     bowlers: bowlers.length > 0 ? bowlers : [],
     crr: crrValue,
     req: reqValue,
     recent,
-    matchUrl: window.location.href
+    matchUrl: window.location.href,
+    isUpcoming: hasCountdown
   };
 }
 
@@ -322,7 +613,8 @@ async function fetchMatchData(matchUrl: string): Promise<any> {
 }
 
 // Function to handle PiP button click on match page - extract from current page and create PiP
-async function createPipFromMatchPage(): Promise<void> {
+// viewType: 'simple' for score only, 'full' for complete match details
+async function createPipFromMatchPage(viewType: 'simple' | 'full' = 'simple'): Promise<void> {
   // Check if documentPictureInPicture API is available
   if (!('documentPictureInPicture' in window)) {
     // Fallback: send to background script
@@ -338,7 +630,7 @@ async function createPipFromMatchPage(): Promise<void> {
     // Create PiP window from match page (we have user activation from button click)
     const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
       width: 420,
-      height: 500
+      height: viewType === 'simple' ? 200 : 500
     });
     
     // Extract data from current match page
@@ -359,11 +651,13 @@ async function createPipFromMatchPage(): Promise<void> {
       matchUrl: window.location.href
     };
     
-    renderPipContent(pipWindow, loadingData);
+    // Use appropriate render function based on view type
+    const renderFunction = viewType === 'simple' ? renderSimplePipContent : renderPipContent;
+    renderFunction(pipWindow, loadingData);
     
     // Render actual data
     if (matchData) {
-      renderPipContent(pipWindow, matchData);
+      renderFunction(pipWindow, matchData);
       
       // Set up MutationObserver to watch for DOM changes in the match page
       const miniscoreContainer = document.querySelector('#miniscore-branding-container');
@@ -374,7 +668,7 @@ async function createPipFromMatchPage(): Promise<void> {
           (observer as any).updateTimeout = setTimeout(() => {
             const updatedData = extractMatchDataFromDOM();
             if (updatedData) {
-              renderPipContent(pipWindow, updatedData);
+              renderFunction(pipWindow, updatedData);
             }
           }, 500); // Wait 500ms after last change before updating
         });
@@ -387,15 +681,17 @@ async function createPipFromMatchPage(): Promise<void> {
           attributes: false
         });
         
-        // Also observe the scorecard sections
-        const scorecardSections = document.querySelectorAll('.scorecard-bat-grid');
-        scorecardSections.forEach(section => {
-          observer.observe(section, {
-            childList: true,
-            subtree: true,
-            characterData: true
+        // Also observe the scorecard sections (only for full view)
+        if (viewType === 'full') {
+          const scorecardSections = document.querySelectorAll('.scorecard-bat-grid');
+          scorecardSections.forEach(section => {
+            observer.observe(section, {
+              childList: true,
+              subtree: true,
+              characterData: true
+            });
           });
-        });
+        }
         
         // Clean up observer when window closes
         pipWindow.addEventListener('pagehide', () => {
@@ -403,7 +699,7 @@ async function createPipFromMatchPage(): Promise<void> {
         });
       }
     } else {
-      renderPipContent(pipWindow, {
+      renderFunction(pipWindow, {
         ...loadingData,
         matchStatus: 'Failed to extract match data'
       });
@@ -411,6 +707,173 @@ async function createPipFromMatchPage(): Promise<void> {
   } catch (error) {
     console.error('Error creating PiP window:', error);
   }
+}
+
+// Function to render simplified PiP content (only scores, status, CRR/REQ)
+function renderSimplePipContent(pipWindow: Window, data: any): void {
+    pipWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 420px;
+      height: 200px;
+      margin: 0;
+      padding: 0;
+      background-color: #222;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+      color: #fff;
+    }
+    .header {
+      background-color: #2a2a2a;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .title {
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+    .close-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .content {
+      padding: 12px;
+    }
+    .score-section {
+      background-color: #222;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .team-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .team-row:last-child {
+      border-bottom: none;
+    }
+    .team-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #b3b3b3;
+    }
+    .team-row:last-child .team-name {
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .team-score {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .status {
+      margin-top: 8px;
+      color: #ff0000;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .rates {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+    .rate-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .rate-label {
+      font-weight: 600;
+      color: #b5b5b5;
+    }
+    .rate-value {
+      color: #b5b5b5;
+      font-weight: normal;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">${escapeHtml(data.matchTitle || 'Match Details')}</div>
+    <button class="close-btn" onclick="window.close()">×</button>
+  </div>
+  <div class="content">
+    ${data.isUpcoming ? `
+      <div class="score-section" style="display: flex; align-items: center; justify-content: center; height: 100%; text-align: center;">
+        <div style="font-size: 16px; color: #fff; font-weight: 500;">
+          Match is about to start
+        </div>
+      </div>
+    ` : `
+      <div class="score-section">
+        <div class="team-row">
+          <span class="team-name">${escapeHtml(data.team1Name || 'Team 1')}</span>
+          <span class="team-score">${escapeHtml(data.team1Score || '0')}</span>
+        </div>
+        <div class="team-row">
+          <span class="team-name">${escapeHtml(data.team2Name || 'Team 2')}</span>
+          <span class="team-score">${escapeHtml(data.team2Score || '0')}</span>
+        </div>
+        ${data.matchStatus ? `<div class="status">${escapeHtml(data.matchStatus)}</div>` : ''}
+        ${data.crr || data.req ? `
+          <div class="rates">
+            ${data.crr ? `
+              <div class="rate-item">
+                <span class="rate-label">CRR:</span>
+                <span class="rate-value">${escapeHtml(data.crr)}</span>
+              </div>
+            ` : ''}
+            ${data.req ? `
+              <div class="rate-item">
+                <span class="rate-label">REQ:</span>
+                <span class="rate-value">${escapeHtml(data.req)}</span>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+      </div>
+    `}
+  </div>
+</body>
+</html>
+  `);
+  pipWindow.document.close();
 }
 
 // Function to render PiP content
@@ -538,15 +1001,15 @@ function renderPipContent(pipWindow: Window, data: any): void {
     }
     .recent-label {
       font-weight: 600;
-      color: #666;
+      color: #fff;
       margin-right: 4px;
     }
     .recent-value {
-      color: #666;
+      color: #fff;
     }
     .status {
       margin-top: 8px;
-      color: #fff;
+      color: #ff0000;
       font-size: 12px;
       font-weight: 500;
     }
@@ -613,22 +1076,6 @@ function renderPipContent(pipWindow: Window, data: any): void {
       color: #fff;
       font-weight: 600;
     }
-    .view-match-btn {
-      display: block;
-      margin-top: 12px;
-      padding: 10px;
-      background-color: #4fc2a3;
-      color: #fff;
-      text-align: center;
-      text-decoration: none;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      transition: background-color 0.2s;
-    }
-    .view-match-btn:hover {
-      background-color: #3fb893;
-    }
   </style>
 </head>
 <body>
@@ -637,78 +1084,84 @@ function renderPipContent(pipWindow: Window, data: any): void {
     <button class="close-btn" onclick="window.close()">×</button>
   </div>
   <div class="content">
-    <div class="score-section">
-    <div class="team-row">
-        <span class="team-name">${escapeHtml(data.team1Name || 'Team 1')}</span>
-        <span class="team-score">${escapeHtml(data.team1Score || '0')}</span>
-    </div>
-    <div class="team-row">
-        <span class="team-name">${escapeHtml(data.team2Name || 'Team 2')}</span>
-        <span class="team-score">${escapeHtml(data.team2Score || '0')}</span>
+    ${data.isUpcoming ? `
+      <div class="score-section" style="display: flex; align-items: center; justify-content: center; height: 400px; text-align: center;">
+        <div style="font-size: 18px; color: #fff; font-weight: 500;">
+          Match is about to start
+        </div>
       </div>
-      ${data.recent ? `
-        <div class="recent-section">
-          <span class="recent-label">Recent:</span>
-          <span class="recent-value">${escapeHtml(data.recent)}</span>
+    ` : `
+      <div class="score-section">
+      <div class="team-row">
+          <span class="team-name">${escapeHtml(data.team1Name || 'Team 1')}</span>
+          <span class="team-score">${escapeHtml(data.team1Score || '0')}</span>
+      </div>
+      <div class="team-row">
+          <span class="team-name">${escapeHtml(data.team2Name || 'Team 2')}</span>
+          <span class="team-score">${escapeHtml(data.team2Score || '0')}</span>
         </div>
+        ${data.recent ? `
+          <div class="recent-section">
+            <span class="recent-label">Recent:</span>
+            <span class="recent-value">${escapeHtml(data.recent)}</span>
+          </div>
+        ` : ''}
+        ${data.matchStatus ? `<div class="status">${escapeHtml(data.matchStatus)}</div>` : ''}
+        ${data.crr || data.req ? `
+          <div class="rates">
+            ${data.crr ? `
+              <div class="rate-item">
+                <span class="rate-label">CRR:</span>
+                <span class="rate-value">${escapeHtml(data.crr)}</span>
+              </div>
+            ` : ''}
+            ${data.req ? `
+              <div class="rate-item">
+                <span class="rate-label">REQ:</span>
+                <span class="rate-value">${escapeHtml(data.req)}</span>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+      </div>
+      
+      ${data.batters && data.batters.length > 0 ? `
+        <div class="section-title">Batters</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Batter</th>
+              <th>R</th>
+              <th>B</th>
+              <th>4s</th>
+              <th>6s</th>
+              <th>SR</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${batterRows}
+          </tbody>
+        </table>
       ` : ''}
-      ${data.matchStatus ? `<div class="status">${escapeHtml(data.matchStatus)}</div>` : ''}
-      ${data.crr || data.req ? `
-        <div class="rates">
-          ${data.crr ? `
-            <div class="rate-item">
-              <span class="rate-label">CRR:</span>
-              <span class="rate-value">${escapeHtml(data.crr)}</span>
-            </div>
-          ` : ''}
-          ${data.req ? `
-            <div class="rate-item">
-              <span class="rate-label">REQ:</span>
-              <span class="rate-value">${escapeHtml(data.req)}</span>
-            </div>
-          ` : ''}
-        </div>
+      
+      ${data.bowlers && data.bowlers.length > 0 ? `
+        <div class="section-title">Bowlers</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Bowler</th>
+              <th>O</th>
+              <th>R</th>
+              <th>W</th>
+              <th>Eco</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bowlerRows}
+          </tbody>
+        </table>
       ` : ''}
-    </div>
-    
-    ${data.batters && data.batters.length > 0 ? `
-      <div class="section-title">Batters</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Batter</th>
-            <th>R</th>
-            <th>B</th>
-            <th>4s</th>
-            <th>6s</th>
-            <th>SR</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${batterRows}
-        </tbody>
-      </table>
-    ` : ''}
-    
-    ${data.bowlers && data.bowlers.length > 0 ? `
-      <div class="section-title">Bowlers</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Bowler</th>
-            <th>O</th>
-            <th>R</th>
-            <th>W</th>
-            <th>Eco</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${bowlerRows}
-        </tbody>
-      </table>
-    ` : ''}
-    
-    <a href="${escapeHtml(data.matchUrl)}" target="_blank" class="view-match-btn">View Full Match →</a>
+    `}
   </div>
 </body>
 </html>
@@ -728,7 +1181,7 @@ function addPipButtonToMatchPage() {
   const miniscoreContainer = document.querySelector('#miniscore-branding-container');
   if (!miniscoreContainer) return;
   
-  // Check if button already exists
+  // Check if buttons already exist
   if (miniscoreContainer.querySelector('.pip-button')) return;
   
   // Find the desktop view div with "px-4 py-2 justify-between"
@@ -803,45 +1256,89 @@ function addPipButtonToMatchPage() {
     miniscoreContainer.insertBefore(buttonContainer, miniscoreContainer.firstChild);
   }
   
-  // Create PiP button
-  const pipButton = document.createElement('button');
-  pipButton.className = 'pip-button';
-  pipButton.title = 'Open in Picture-in-Picture';
-  pipButton.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  // Create button wrapper for both buttons
+  buttonContainer.style.cssText += ' gap: 8px;';
+  
+  // Create "Pin Score" button (simple view)
+  const pinScoreButton = document.createElement('button');
+  pinScoreButton.className = 'pip-button pip-button-score';
+  pinScoreButton.title = 'Pin Score';
+  pinScoreButton.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2" y="6" width="14" height="12" rx="2"></rect>
       <rect x="10" y="2" width="12" height="10" rx="2"></rect>
     </svg>
+    <span style="margin-left: 4px; font-size: 11px;">Score</span>
   `;
-  pipButton.style.cssText = `
+  pinScoreButton.style.cssText = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 8px;
+    padding: 6px 10px;
     background-color: #4fc2a3;
     color: white;
-    border: none;
+      border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
-    width: 32px;
-    height: 32px;
+    font-size: 11px;
+    white-space: nowrap;
   `;
   
-  pipButton.onmouseenter = () => {
-    pipButton.style.backgroundColor = '#3fb893';
+  pinScoreButton.onmouseenter = () => {
+    pinScoreButton.style.backgroundColor = '#3fb893';
   };
-  pipButton.onmouseleave = () => {
-    pipButton.style.backgroundColor = '#4fc2a3';
+  pinScoreButton.onmouseleave = () => {
+    pinScoreButton.style.backgroundColor = '#4fc2a3';
   };
   
-  pipButton.onclick = (e) => {
+  pinScoreButton.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    createPipFromMatchPage();
+    createPipFromMatchPage('simple');
   };
   
-  buttonContainer.appendChild(pipButton);
+  // Create "Pin Match" button (full view)
+  const pinMatchButton = document.createElement('button');
+  pinMatchButton.className = 'pip-button pip-button-match';
+  pinMatchButton.title = 'Pin Match';
+  pinMatchButton.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="6" width="14" height="12" rx="2"></rect>
+      <rect x="10" y="2" width="12" height="10" rx="2"></rect>
+    </svg>
+    <span style="margin-left: 4px; font-size: 11px;">Match</span>
+  `;
+  pinMatchButton.style.cssText = `
+      display: inline-flex;
+      align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    background-color: #4a89e7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+      cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 11px;
+    white-space: nowrap;
+  `;
+  
+  pinMatchButton.onmouseenter = () => {
+    pinMatchButton.style.backgroundColor = '#3a79d7';
+  };
+  pinMatchButton.onmouseleave = () => {
+    pinMatchButton.style.backgroundColor = '#4a89e7';
+  };
+  
+  pinMatchButton.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    createPipFromMatchPage('full');
+  };
+  
+  buttonContainer.appendChild(pinScoreButton);
+  buttonContainer.appendChild(pinMatchButton);
 }
 
 // Function to observe DOM changes and add PiP button when match page loads
