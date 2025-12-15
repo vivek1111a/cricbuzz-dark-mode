@@ -1,3 +1,21 @@
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install' || details.reason === 'update') {
+    // Replace this URL with your actual Google Form URL
+    // Format: https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform?usp=pp_url&entry.XXXXXXX=uninstall
+    const feedbackFormUrl = 'https://forms.gle/AzNusBzfSDD4pmFm6';
+    
+    chrome.runtime.setUninstallURL(feedbackFormUrl, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error setting uninstall URL:', chrome.runtime.lastError);
+      } else {
+        console.log('Uninstall feedback URL set successfully');
+      }
+    });
+  }
+});
+
+
+
 // find all tabs with cricbuzz.com in the url
 const getTabIds = (): Promise<number[]> => {
   return new Promise((resolve, reject) => {
